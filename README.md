@@ -1,0 +1,1 @@
+# stek-pro-text-analyzer
