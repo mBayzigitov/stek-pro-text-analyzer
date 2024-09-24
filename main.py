@@ -69,6 +69,22 @@ def print_lines_word_occurs_in(target, ws_by_lines, cache, lines):
     for res in set(res_lines):
         print(f"\t{lines[res]}")
 
+def print_word_by_index(idx, borders, words_by_lines):
+    l = 0
+    h = len(borders) - 1
+    mid = 0
+
+    while l <= h:
+        mid = (l + h) // 2
+
+        if borders[mid][1] < idx:
+            l = mid + 1
+        elif borders[mid][0] > idx:
+            h = mid - 1
+        else:
+            print(words_by_lines[mid][idx - borders[mid][0]])
+            return
+
 def main():
     if len(sys.argv) != 2:
         print("Использование: python main.py [filename]")
@@ -114,7 +130,7 @@ def main():
     # Подготовка вспомогательных структур для оптимизации операций
     words_by_lines = []
     line_words_minmax_number = []
-    c = 0
+    c = 1
     for line in lines:
         n, line_words = count_words(line)
         line_words_minmax_number.append((c, c + n - 1))
@@ -144,6 +160,15 @@ def main():
 
         if command == "fword":
             print_lines_word_occurs_in(spl[1].lower(), words_by_lines, freq_words_cache, lines)
+        elif command == "fnum":
+            try:
+                number = int(spl[1])
+                if number <= 0 or number > num_words:
+                    print(f"Некорректный номер слова, всего слов в тексте: {num_words}")
+                    continue
+                print_word_by_index(number, line_words_minmax_number, words_by_lines)
+            except ValueError:
+                print(INCORRECT_COMMAND_MSG)
 
 if __name__ == "__main__":
     main()
