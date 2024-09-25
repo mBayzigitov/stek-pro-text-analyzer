@@ -211,7 +211,8 @@ def listen_commands():
             if subcommand == "lc":
                 write_sample_file_content(TEXT.lower(), "в нижнем регистре")
             elif subcommand == "wp":
-                write_sample_file_content(re.sub('[^\w\s]+', '', TEXT), "без знаков препинания")
+                removed_wp = re.sub('[^\w\s]+', '', TEXT)
+                write_sample_file_content(re.sub(' +', ' ', removed_wp), "без знаков препинания")
             else:
                 print(INCORRECT_COMMAND_MSG)
 
