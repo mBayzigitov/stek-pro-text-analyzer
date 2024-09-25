@@ -83,7 +83,7 @@ def print_lines_word_occurs_in(target, ws_by_lines, cache, lines):
     for res in set(res_lines):
         print(f"\t{lines[res]}")
 
-def print_word_by_index(idx, borders, words_by_lines):
+def get_word_by_index(idx, borders, words_by_lines):
     """Вывести на экран слово по номеру idx"""
     l = 0
     h = len(borders) - 1
@@ -97,8 +97,8 @@ def print_word_by_index(idx, borders, words_by_lines):
         elif borders[mid][0] > idx:
             h = mid - 1
         else:
-            print(words_by_lines[mid][idx - borders[mid][0]])
-            return
+            return words_by_lines[mid][idx - borders[mid][0]]
+    return ""
 
 def count_existing_files():
     return len(glob.glob(SAMPLE_NAME + "*" + SAMPLE_EXT))
@@ -202,7 +202,9 @@ def listen_commands():
                 if number <= 0 or number > NUM_WORDS:
                     print(f"Некорректный номер слова, всего слов в тексте: {NUM_WORDS}")
                     continue
-                print_word_by_index(number, LINE_WORDS_MINMAX_NUMBER, WORDS_BY_LINES)
+                found_word = get_word_by_index(number, LINE_WORDS_MINMAX_NUMBER, WORDS_BY_LINES)
+                if found_word:
+                    print(found_word)
             except ValueError:
                 print(INCORRECT_COMMAND_MSG)
         elif command == "save":
