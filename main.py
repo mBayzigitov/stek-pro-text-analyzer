@@ -1,6 +1,17 @@
 import sys, re, glob
 from collections import Counter
 
+TEXT = "" # обрабатываемый текст из файла
+WORDS_BY_LINES = [] # двумерный список слов по строкам
+# Список пар вида (n, m), используется для бин поиска слова по номеру
+# n - номер первого слова в строке
+# m - номер последнего слова в строке
+LINE_WORDS_MINMAX_NUMBER = []
+LINES = [] # текст разбитый по строкам
+NUM_WORDS = 0 # количество слов в тексте
+REPEATED_WORDS = {} # карта слов, повторяющихся более 1 раза
+FREQ_WORDS_CACHE = {} # карта вида (слово, список индексов строк в которых оно есть)
+
 TOP_FREQ_WORDS = 10
 INCORRECT_COMMAND_MSG = "\tНекорректная команда, введите \"help\", чтобы посмотреть список команд"
 SAMPLE_NAME = "output-"
@@ -102,18 +113,22 @@ def write_sample_file_content(text, ftype):
         return
     print(f"\tТекст {ftype} успешно записан в файл {SAMPLE_NAME + str(n) + SAMPLE_EXT}")
 
-def main():
+def print_stats():
     if len(sys.argv) != 2:
         print("Использование: python main.py [filename]")
         sys.exit(1)
 
+    global TEXT
     filename = sys.argv[1]
-    text = read_file(filename)
+    TEXT = read_file(filename)
 
     # Подсчет строк, слов и символов
-    num_lines, lines = count_lines(text)
-    num_words, words = count_words(text)
-    num_chars = count_characters(text)
+    num_lines, lines = count_lines(TEXT)
+    global LINES
+    LINES = lines
+    global NUM_WORDS
+    NUM_WORDS, words = count_words(TEXT)
+    num_chars = count_characters(TEXT)
 
     # Повторяющиеся слова
     repeated_words = find_repeated_words(words)
@@ -121,14 +136,14 @@ def main():
     # Самое длинное слово
     longest_word = find_longest_word(words)
 
-    if num_words == 0:
+    if NUM_WORDS == 0:
         print("Текст пустой, нет данных для поиска/статистики")
         sys.exit(1)
 
     # Вывод результатов
     print(">>> Статистика текста <<<")
     print(f"Количество строк: {num_lines}")
-    print(f"Количество слов: {num_words}")
+    print(f"Количество слов: {NUM_WORDS}")
     print(f"Количество символов: {num_chars}")
 
     if repeated_words:
@@ -144,29 +159,31 @@ def main():
         print("Нет слов в тексте")
     print()
 
-    # Подготовка вспомогательных структур для оптимизации операций
-    words_by_lines = []
-    line_words_minmax_number = []
+def prep_helper_structs():
+    """Подготовка вспомогательных структур для оптимизации операций"""
     c = 1
-    for line in lines:
+    for line in LINES:
         n, line_words = count_words(line)
-        line_words_minmax_number.append((c, c + n - 1))
+        LINE_WORDS_MINMAX_NUMBER.append((c, c + n - 1))
         c += n
-        words_by_lines.append([w.lower() for w in line_words])
+        WORDS_BY_LINES.append([w.lower() for w in line_words])
 
-    freq_words_cache = {}
-    first_n_most_freq = min(len(repeated_words), TOP_FREQ_WORDS)
-    for i, (k, v) in enumerate(repeated_words.items()):
+    first_n_most_freq = min(len(REPEATED_WORDS), TOP_FREQ_WORDS)
+    for i, (k, v) in enumerate(REPEATED_WORDS.items()):
         if i == first_n_most_freq:
             break
-        freq_words_cache[k.lower()] = find_lines_word_occurs_in(k.lower(), words_by_lines)
+        FREQ_WORDS_CACHE[k.lower()] = find_lines_word_occurs_in(k.lower(), WORDS_BY_LINES)
 
+def listen_commands():
     # Логика команд
     input_line = ""
     while input_line != "exit":
         input_line = input(">> ")
         spl = input_line.rstrip().split()
         command = spl[0]
+
+        if command == "exit":
+            sys.exit(1)
 
         if command == "help":
             print_refs()
@@ -178,23 +195,28 @@ def main():
         subcommand = spl[1]
 
         if command == "fword":
-            print_lines_word_occurs_in(subcommand.lower(), words_by_lines, freq_words_cache, lines)
+            print_lines_word_occurs_in(subcommand.lower(), WORDS_BY_LINES, FREQ_WORDS_CACHE, LINES)
         elif command == "fnum":
             try:
                 number = int(subcommand)
-                if number <= 0 or number > num_words:
-                    print(f"Некорректный номер слова, всего слов в тексте: {num_words}")
+                if number <= 0 or number > NUM_WORDS:
+                    print(f"Некорректный номер слова, всего слов в тексте: {NUM_WORDS}")
                     continue
-                print_word_by_index(number, line_words_minmax_number, words_by_lines)
+                print_word_by_index(number, LINE_WORDS_MINMAX_NUMBER, WORDS_BY_LINES)
             except ValueError:
                 print(INCORRECT_COMMAND_MSG)
         elif command == "save":
             if subcommand == "lc":
-                write_sample_file_content(text.lower(), "в нижнем регистре")
+                write_sample_file_content(TEXT.lower(), "в нижнем регистре")
             elif subcommand == "wp":
-                write_sample_file_content(re.sub('[^\w\s]+', '', text), "без знаков препинания")
+                write_sample_file_content(re.sub('[^\w\s]+', '', TEXT), "без знаков препинания")
             else:
                 print(INCORRECT_COMMAND_MSG)
+
+def main():
+    print_stats()
+    prep_helper_structs()
+    listen_commands()
 
 if __name__ == "__main__":
     main()
